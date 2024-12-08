@@ -6,11 +6,14 @@ import com.example.graphqlmutation.entities.Centre;
 import com.example.graphqlmutation.entities.Etudiant;
 import com.example.graphqlmutation.repositories.CentreRepository;
 import com.example.graphqlmutation.repositories.EtudiantRepository;
+import com.example.graphqlmutation.service.EtudiantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.stereotype.Controller;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -19,14 +22,15 @@ public class EtudiantController {
     @Autowired
     private CentreRepository centreRepository;
     @Autowired
-    private EtudiantRepository etudiantRepository;
+    private EtudiantService etudiantService;
     @QueryMapping
     public List<Centre>getAllCentres(){
+
         return centreRepository.findAll();
     }
     @QueryMapping
     public List<Etudiant>listEtudiants(){
-        return etudiantRepository.findAll();
+        return etudiantService.getStudents();
     }
     @QueryMapping
     public Centre getCentreById(@Argument Long id){
@@ -36,45 +40,23 @@ public class EtudiantController {
     }
     @QueryMapping
     public Etudiant getEtudiantById(@Argument Long id){
-        return etudiantRepository.findById(id).orElseThrow(
-                ()->new RuntimeException(String.format("l'etudiant %s n'exiqte pas",id))
-        );
+        return etudiantService.getEtudiant(id);
     }
     @MutationMapping
     public String deleteEtudiant(@Argument Long id){
-        if(etudiantRepository.findById(id).isPresent()){
-            etudiantRepository.deleteById(id);
-            return String.format("l'etudiant %s est bien supprimé",id);
-        }
-        return String.format("l'etudiant %s n'existe pas",id);
+        return etudiantService.deleteEtudiant(id);
     }
     @MutationMapping
     public Etudiant addEtudiant(@Argument EtudiantDTO etudiant){
-        Centre centre=centreRepository.findById(etudiant.centreId()).orElse(null);
-        if(centre!=null){
-            Etudiant et=new Etudiant();
-            et.setNom(etudiant.nom());
-            et.setPrenom(etudiant.prenom());
-            et.setCentre(centre);
-            et.setGenre(etudiant.genre());
-            return etudiantRepository.save(et);
-        }
-        return null;
+        return etudiantService.addEtudiant(etudiant);
     }
     @MutationMapping
     public Etudiant updateEtudiant(@Argument Long id,@Argument EtudiantDTO etudiant){
-        Centre centre=centreRepository.findById(etudiant.centreId()).orElse(null);
-        if(centre!=null){
-            if(etudiantRepository.findById(id).isPresent()){
-                Etudiant et=etudiantRepository.findById(id).get();
-                et.setNom(etudiant.nom());
-                et.setPrenom(etudiant.prenom());
-                et.setGenre(etudiant.genre());
-                et.setCentre(centre);
-                return etudiantRepository.save(et);
-            }
-        }
-        return null;
+        return etudiantService.updateEtudiant(id,etudiant);
+    }
+    @SubscriptionMapping
+    public Flux<Etudiant> etudiantAdded(){
+        return etudiantService.getEtudiantAddedPublisher();
     }
     @MutationMapping
     public String deleteCentre(@Argument Long id){

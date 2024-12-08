@@ -9,6 +9,9 @@ type Mutation{
     updateEtudiant(id:Float,etudiant:EtudiantDTO):Etudiant
     deleteEtudiant(id:Float):String
 }
+type Subscription{
+    etudiantAdded:Etudiant
+}
 type Etudiant{
     id:Float
     nom:String
